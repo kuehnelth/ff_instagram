@@ -151,12 +151,13 @@ class ff_Instagram extends Plugin
 		self::check_feed_icon($user->icon_url(), $feed_id);
 
 		//check latest entry in DB
-		$result = $db->query("SELECT max(date_entered) AS ts FROM
+		$sth = $db->prepare("SELECT max(date_entered) AS ts FROM
 				ttrss_entries, ttrss_user_entries WHERE
-				ref_id = id AND feed_id = '$feed_id'", false);
-		$ts = $db->fetch_result($result, 0, "ts");  // NULL when no entries in DB
+				ref_id = id AND feed_id = ?");
+		$sth->execute([$feed_id]);
+		$db_row = $sth->fetch();
 
-		if($ts) $ts = @strtotime($ts);
+		if($sth->rowCount() > 0) $ts = @strtotime($db_row["ts"]);
 		else $ts = false;
 
 		return [$feed->saveXML(), $ts];
@@ -183,7 +184,7 @@ class ff_Instagram extends Plugin
 			return "";
 		}
 
-		list($con, $this->ts) = self::create_xml_icon_stamp($this->user, $feed_id, $this->host->get_dbh());
+		list($con, $this->ts) = self::create_xml_icon_stamp($this->user, $feed_id, $this->pdo);
 
 		return $con;
 	}
@@ -204,7 +205,7 @@ class ff_Instagram extends Plugin
 			return "<error>'$url': {$e->getMessage()}</error>\n";
 		}
 
-		list($con, $this->ts) = self::create_xml_icon_stamp($this->user, $feed_id, $this->host->get_dbh());
+		list($con, $this->ts) = self::create_xml_icon_stamp($this->user, $feed_id, $this->pdo);
 
 		return $con;
 	}
